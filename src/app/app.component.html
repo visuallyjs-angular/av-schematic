@@ -1,0 +1,281 @@
+<main class="vjs-avs-container" [class.dark]="dark()">
+  <header class="vjs-avs-toolbar">
+    <h1>AV Schematic</h1>
+    <button type="button" [attr.aria-expanded]="libraryOpen()" (click)="libraryOpen.set(!libraryOpen())">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+        <path d="M6 2.5v11" />
+      </svg>
+      Library
+    </button>
+    <button type="button" [attr.aria-expanded]="propertiesOpen()" (click)="propertiesOpen.set(!propertiesOpen())">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+        <path d="M10 2.5v11" />
+      </svg>
+      Properties
+    </button>
+    <button type="button" (click)="toggleTheme()">
+      @if (dark()) {
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <circle cx="8" cy="8" r="3" />
+        <path
+          d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1" />
+      </svg>
+      Light theme
+      } @else {
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <path d="M13.5 9.8A5.5 5.5 0 0 1 6.2 2.5a5.5 5.5 0 1 0 7.3 7.3Z" />
+      </svg>
+      Dark theme
+      }
+    </button>
+    <button type="button" (click)="downloadDxf()">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <path d="M9.5 2H4a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5V6L9.5 2Z" />
+        <path d="M9.5 2v4h4" />
+        <path d="M8 8.5v3.5m0 0-1.5-1.5M8 12l1.5-1.5" />
+      </svg>
+      Export DXF
+    </button>
+  </header>
+
+  <div class="vjs-avs-workspace" [class.vjs-avs-library-closed]="!libraryOpen()" [class.vjs-avs-properties-closed]="!propertiesOpen()">
+    <aside class="vjs-avs-pane vjs-avs-library-pane" [hidden]="!libraryOpen()">
+      <div class="vjs-avs-pane-header">
+        <h2>Device library</h2>
+        <div class="search-field">
+          <svg class="icon search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.5" />
+            <path d="m10.5 10.5 3 3" />
+          </svg>
+          <input type="search" placeholder="Search devices" aria-label="Search devices" [ngModel]="query()"
+            (ngModelChange)="query.set($event)">
+        </div>
+        <button type="button" class="btn-primary btn-full" (click)="editTemplate()">
+          <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M8 3.5v9M3.5 8h9" />
+          </svg>
+          Add template
+        </button>
+      </div>
+
+      <div class="vjs-avs-pane-body" vjs-palette [dataGenerator]="paletteData" [canvasDropFilter]="canDropDevice"
+        [allowDropOnNode]="true" [allowDropOnEdge]="false" [allowDropOnGroup]="false" [allowRotation]="false"
+        [autoEdgeConnect]="false" [selectAfterAdd]="false">
+        @if (draft; as template) {
+        <h3 class="section-heading">{{draftId ? 'Edit template' : 'New template'}}</h3>
+        <ng-container *ngTemplateOutlet="deviceForm; context: {$implicit: template, template: true}"></ng-container>
+        } @else if (searchQuery()) {
+        <div class="vjs-avs-library-items">
+          @for (result of filteredLibrary(); track result.item.libraryId) {
+          <ng-container
+            *ngTemplateOutlet="libraryItem; context: {$implicit: result.item, segments: result.segments}"></ng-container>
+          } @empty {
+          <p class="empty-state">No matching devices</p>
+          }
+        </div>
+        } @else {
+        @for (group of libraryGroups(); track group.key) {
+        <details class="library-group" #section [open]="isCategoryOpen(group.key)"
+          (toggle)="setCategoryOpen(group.key, section.open)">
+          <summary>
+            <span class="library-label">{{group.label}}</span>
+            <span class="library-count">{{group.items.length}}</span>
+          </summary>
+          <div class="vjs-avs-library-items">
+            @for (item of group.items; track item.libraryId) {
+            <ng-container *ngTemplateOutlet="libraryItem; context: {$implicit: item}"></ng-container>
+            }
+          </div>
+        </details>
+        } @empty {
+        <p class="empty-state">No devices in library</p>
+        }
+        }
+      </div>
+
+      @if (draft) {
+      <div class="vjs-avs-pane-footer">
+        <button type="button" class="btn-primary" (click)="saveTemplate()">
+          <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+          </svg>
+          Save
+        </button>
+        <button type="button" (click)="draft = null">
+          <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+          Discard
+        </button>
+        @if (draftId) {
+        <button type="button" class="btn-danger" (click)="deleteTemplate()" aria-label="Delete template"
+          title="Delete template">
+          <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path
+              d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4.5 4.5l.7 8.5a1 1 0 0 0 1 .9h3.6a1 1 0 0 0 1-.9l.7-8.5" />
+          </svg>
+        </button>
+        }
+      </div>
+      }
+    </aside>
+
+    <section class="vjs-avs-canvas">
+      <vjs-surface url="dataset.json" [modelOptions]="modelOptions" [viewOptions]="viewOptions"
+        [renderOptions]="renderOptions">
+        <vjs-grid-background [grid]="grid" />
+        <vjs-controls />
+        <vjs-miniview />
+      </vjs-surface>
+    </section>
+
+    <aside class="vjs-avs-pane vjs-avs-properties-pane" [hidden]="!propertiesOpen()">
+      <div class="vjs-avs-pane-header">
+        <h2>Properties</h2>
+      </div>
+
+      <av-properties-inspector [deviceForm]="deviceForm" [activePortDirection]="activePortTab()"
+        (addDevicePort)="addPort($event, activePortTab())" />
+    </aside>
+  </div>
+</main>
+
+<ng-template #libraryItem let-item let-segments="segments">
+  <button type="button" class="vjs-avs-library-item" data-vjs-type="device" [attr.data-library-id]="item.libraryId"
+    [class.dark]="dark()" (click)="editTemplate(item.libraryId)">
+    <span class="vjs-avs-library-item-text">
+      <strong>
+        @if (segments) {
+        @for (segment of segments; track $index) {
+        @if (segment.match) { <mark>{{segment.text}}</mark> } @else { <span>{{segment.text}}</span> }
+        }
+        } @else {
+        {{item.template.manufacturer}} {{item.template.model}}
+        }
+      </strong>
+      <small>{{item.template.category}}</small>
+    </span>
+    <svg class="icon drag-grip" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <circle cx="6" cy="4.5" r="1" />
+      <circle cx="10" cy="4.5" r="1" />
+      <circle cx="6" cy="8" r="1" />
+      <circle cx="10" cy="8" r="1" />
+      <circle cx="6" cy="11.5" r="1" />
+      <circle cx="10" cy="11.5" r="1" />
+    </svg>
+  </button>
+</ng-template>
+
+<ng-template #deviceForm let-item let-template="template">
+  <div class="field-group">
+    @if (!template) {
+    <label>Device ID <input [ngModel]="item.deviceId" (ngModelChange)="editDevice(item, {deviceId: $event})"></label>
+    }
+    <label>Manufacturer <input [ngModel]="item.manufacturer"
+        (ngModelChange)="editDevice(item, {manufacturer: $event})"></label>
+    <label>Model <input [ngModel]="item.model" (ngModelChange)="editDevice(item, {model: $event})"></label>
+    <label>Category <input list="device-categories" [ngModel]="item.category"
+        (ngModelChange)="editDevice(item, {category: $event})"></label>
+    @if (!template) {
+    <label>Location <input [ngModel]="item.location" (ngModelChange)="editDevice(item, {location: $event})"></label>
+    }
+  </div>
+
+  <h3 class="section-heading">Ports</h3>
+  @if (template) {
+  <ng-container *ngTemplateOutlet="portList; context: {$implicit: item, ports: item.ports}"></ng-container>
+  <button type="button" class="btn-full" (click)="addPort(item)">
+    <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+      aria-hidden="true">
+      <path d="M8 3.5v9M3.5 8h9" />
+    </svg>
+    Add port
+  </button>
+  } @else {
+  <div class="port-tabs" role="tablist" aria-label="Port direction" (keydown)="onPortTabKey($event)">
+    @for (direction of portTabs; track direction) {
+    <button type="button" role="tab" [id]="'port-tab-' + direction" [attr.aria-selected]="activePortTab() === direction"
+      [attr.tabindex]="activePortTab() === direction ? 0 : -1" (click)="activePortTab.set(direction)">
+      <span>{{direction === 'input' ? 'Input ports' : 'Output ports'}}</span>
+      <span class="tab-count">{{portsFor(item, direction).length}}</span>
+    </button>
+    }
+  </div>
+  @for (direction of portTabs; track direction) {
+  <div role="tabpanel" [id]="'port-panel-' + direction" [attr.aria-labelledby]="'port-tab-' + direction"
+    [hidden]="activePortTab() !== direction">
+    @if (activePortTab() === direction) {
+    <ng-container
+      *ngTemplateOutlet="portList; context: {$implicit: item, ports: portsFor(item, direction), direction: direction}"></ng-container>
+    }
+  </div>
+  }
+  }
+</ng-template>
+
+<ng-template #portList let-item let-ports="ports" let-direction="direction">
+  <div class="port-cards">
+    @for (port of ports; track port.id; let i = $index; let last = $last) {
+    <div class="port-card">
+      <div class="port-row-top">
+        <input aria-label="Port label" placeholder="Port label" [ngModel]="port.label"
+          (ngModelChange)="editPort(item, port, {label: $event})">
+        <select aria-label="Port direction" [ngModel]="port.direction"
+          (ngModelChange)="editPort(item, port, {direction: $event})">
+          <option value="input">Input</option>
+          <option value="output">Output</option>
+        </select>
+      </div>
+      <div class="port-row-bottom">
+        <input list="connector-types" aria-label="Connector type" placeholder="Connector" [ngModel]="port.connectorType"
+          (ngModelChange)="editPort(item, port, {connectorType: $event})">
+        <div class="port-actions">
+          <button type="button" class="btn-icon" (click)="movePort(item, port, -1, direction)" [disabled]="i === 0"
+            aria-label="Move port up" title="Move up">
+            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m4 10 4-4 4 4" />
+            </svg>
+          </button>
+          <button type="button" class="btn-icon" (click)="movePort(item, port, 1, direction)" [disabled]="last"
+            aria-label="Move port down" title="Move down">
+            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m4 6 4 4 4-4" />
+            </svg>
+          </button>
+          <button type="button" class="btn-icon btn-danger-ghost" (click)="removePort(item, port)"
+            aria-label="Remove port" title="Remove port">
+            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path
+                d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4.5 4.5l.7 8.5a1 1 0 0 0 1 .9h3.6a1 1 0 0 0 1-.9l.7-8.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    } @empty {
+    <p class="empty-state">{{direction ? 'No ' + direction + ' ports' : 'No ports'}}</p>
+    }
+  </div>
+</ng-template>
+
+<datalist id="device-categories">
+  @for (type of deviceTypes; track type.name) { <option [value]="type.name"></option> }
+</datalist>
+<datalist id="connector-types">
+  @for (type of connectors; track type) { <option [value]="type"></option> }
+</datalist>

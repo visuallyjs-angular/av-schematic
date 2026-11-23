@@ -1,0 +1,64 @@
+<ng-container>
+@if (currentObj != null) {
+  <div class="vjs-avs-pane-body">
+    @if (isNode(currentObj)) {
+    <ng-container *ngTemplateOutlet="deviceForm(); context: {$implicit: deviceData(currentObj), template: false}"></ng-container>
+    } @else if (isEdge(currentObj)) {
+    <h3 class="section-heading">Cable</h3>
+    <div class="field-group">
+      <label>Cable ID <input [ngModel]="cableData(currentObj).cableId" (ngModelChange)="model().updateEdge(currentObj, {cableId: $event})"></label>
+      <label>Signal type
+        <select [ngModel]="cableData(currentObj).cableType ?? ''" (ngModelChange)="model().updateEdge(currentObj, {cableType: $event || undefined})">
+          <option value="">Unspecified</option>
+          @for (type of signalTypes; track type) {
+          <option [value]="type">{{type}}</option>
+          }
+        </select>
+      </label>
+    </div>
+    }
+  </div>
+
+  @if (isNode(currentObj)) {
+  <div class="vjs-avs-pane-footer">
+    <button type="button" class="btn-primary" (click)="addDevicePort.emit(deviceData(currentObj))">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        aria-hidden="true">
+        <path d="M8 3.5v9M3.5 8h9" />
+      </svg>
+      Add {{activePortDirection()}} port
+    </button>
+    <button type="button" class="btn-danger" (click)="model().removeNode(currentObj)">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <path
+          d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4.5 4.5l.7 8.5a1 1 0 0 0 1 .9h3.6a1 1 0 0 0 1-.9l.7-8.5" />
+      </svg>
+      Delete device
+    </button>
+  </div>
+  } @else if (isEdge(currentObj)) {
+  <div class="vjs-avs-pane-footer">
+    <button type="button" (click)="$vjs.surface().clearPathEdits(currentObj)">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 7a5 5 0 1 1 1.5 3.6M3 3.5V7h3.5" />
+      </svg>
+      Reset routing
+    </button>
+    <button type="button" class="btn-danger" (click)="model().removeEdge(currentObj)">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <path
+          d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4.5 4.5l.7 8.5a1 1 0 0 0 1 .9h3.6a1 1 0 0 0 1-.9l.7-8.5" />
+      </svg>
+      Delete cable
+    </button>
+  </div>
+  }
+} @else {
+  <div class="vjs-avs-pane-body">
+    <p class="empty-state">Select a device or cable on the canvas to inspect and edit its properties.</p>
+  </div>
+}
+</ng-container>
